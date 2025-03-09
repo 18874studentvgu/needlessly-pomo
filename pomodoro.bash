@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2190,SC2128,SC1091
 
 # F*ck it, all GNU-ism
 # Credits:
@@ -7,23 +8,31 @@
 #   https://github.com/dylanaraps/pure-bash-bible
 
 #### TODO ####
-# [ ] Random title & texts
-# [ ] optimizations
+# [X] Random title & texts
+# [ ] optimizations (+ make script look less dumb)
 # [ ] unit tests
-# [ ] read configs from file that can be overwritten by setting runtime vars
+# [-] Source vars from a conf file that can be overwritten by setting runtime vars
+# [ ] Random side pictures too
+# [ ] One-time first interval
+
+# attempt to read from a .env file
+source "$(dirname "$0")"/.env 2>/dev/null
 
 # interval in minutes
 # this makes sure [ -z "$POMO_INTERVAL_1" ] always false
 readonly POMO_INTERVAL_1="${POMO_INTERVAL_1:-25}" 
-readonly INTERVAL_2="${INTERVAL_2-5}" # INTERVAL_2 can be set to "" idc
+readonly POMO_INTERVAL_2="${POMO_INTERVAL_2-5}" # INTERVAL_2 can be set to "" idc
 
-readonly POMO_RESOURCE_PATHS="${POMO_RESOURCE_PATHS-$(dirname $0)/resources:$HOME/.local/share/pomodoro:$HOME/s a/h}"
+readonly POMO_RESOURCE_PATHS="${POMO_RESOURCE_PATHS-$(dirname "$0")/resources:$HOME/.local/share/needlessly-pomo}"
 
 readonly LABEL_FILE_PREFIX="${LABEL_FILE_PREFIX-labels_content}"
 
 readonly EMPTY_F="921b85de-dae2-4b78-83ca-d30cc41a6ce9"
 
 trstr() {
+# trim trailing white space and EMPTY_F from string
+# I only added the `sed` at the end, not sure what magic's going on 
+# in here
 # Credits:
 #   https://github.com/dylanaraps/pure-bash-bible
 
@@ -32,6 +41,14 @@ trstr() {
     : "${_%"${_##*[![:space:]]}"}"
     printf '%s\n' "$_" | sed -E "s/$EMPTY_F//g"
 }
+
+# prevent closing right away when running as a (headless?) terminal app 
+trap '[ "$?" -ne 0 ] && \
+    {
+        printf "\033[5m\033[1mINFO: Script stopped. Hit ENTER to exit...\033[0m";
+        read;
+        printf "\033[1A\033[2KINFO: Script stopped. Hit ENTER to exit...\n";
+    }' EXIT
 
 # load flavor texts from file
 # the file should look something like this:
@@ -53,12 +70,12 @@ trstr() {
 # * we use `---` as deliminator and relies on the position of the text
 #   to figure out  what is what. do note the white spaces, 'tis important.
 # * Empty fields must be denoted with the string in variable 'EMPTY_F'
-#   `921b85de-dae2-4b78-83ca-d30cc41a6ce9` 
+# 
 # * under the hood the sequence `\n---\n` get converted into `\t` which is
 #   then used as delim for `read` to slice into a 6 elements array, w each 
 #   element being a multiline string
 # 
-# * the way we do it, the last line of each array element does(or should) 
+# * the way we do it, the last line of each array element MUST
 #   NOT have a trailing newline (\n)
 # 
 # why not using `awk` or `sed`? good question...
@@ -89,7 +106,7 @@ if [ -z "$_ext_dir" ] || $_ext_dir; then
         label_prefix_path="${conf_path}"/"${LABEL_FILE_PREFIX}"
         for label_file in "$label_prefix_path"*; do
             shopt -u nullglob
-            echo -n "  > found [ $(basename $label_file) ], attempt to read..."
+            echo -n "    > found '$(basename "$label_file")', attempt to read..."
             # break
             if data="$(cat "$label_file" 2>/dev/null)"; then
                 IFS=$'\t' read -d '' -r -a data_arr \
@@ -112,19 +129,19 @@ if [ -z "$_ext_dir" ] || $_ext_dir; then
 
     for key in "title" "text" "no" "yes"; do
         unset lines;
-        s="$key"
-        s="${dict[$key]}"
-        # s="$(echo -e  | )"
         lines=$(( "$(wc -l <<< "${dict["$key"]}")" - 1 ))
         echo -e "  dict[$key]:\t($lines) entries"
         # check if there are actually multiple values for a given key
-        [ $lines -gt 0 ] && \
-            declare -g _multi_$key=true || \
+        if [ $lines -gt 0 ]; then
+            declare -g _multi_$key=true
+        else
             declare -g _multi_$key=false
+        fi
     done
-# break 8
+# break 8 # only here to debug, remove this later
 
     # if nothing was found at all, _ext_dir=false, else _ext_dir=true
+    # shellcheck disable=SC2154
     if ! $_multi_title && ! $_multi_text && ! $_multi_no && ! $_multi_yes;
     then # there has to be a better what than this
         echo "INFO: Insufficient amount of entries in all elements of dict,"
@@ -135,18 +152,22 @@ if [ -z "$_ext_dir" ] || $_ext_dir; then
     fi
 fi
 
+
+
+
 # until we implement Random title & texts, this'll always be true
 # if true; then declare -g _ext_dir=false; fi
 
 
-# exit 2
+# exit 2 # only here to debug, remove this later
 declare -Ag texts=()
 
 function get_texts {
     $_ext_dir \
         && {
+        # shellcheck disable=SC2086
         for key in "title" "text" "no" "yes"; do
-            $(eval echo "\$_multi_$key") &&\
+            "$(eval echo "\$_multi_$key")" &&\
                 declare ${key}_value="$(shuf -n 1 <<< ${dict[$key]})"
         done
         texts=(
@@ -164,6 +185,16 @@ function get_texts {
         )
 }
 
+printf 'Running with interval(s): '
+# shellcheck disable=SC2046 # this is an abomination
+if (printf '%.2f/' $(eval echo $(printf '"$%s" ' "${!POMO_INTERVAL_@}"))); then
+    #        ↓ removed the last `/`
+    echo -e "\033[1D\033[K minutes" 
+else
+    echo -e "\033[2K\nERROR: Some interval seems to not be in number formats,"\
+        "double check environmental variables and try again"
+        exit 1
+fi
 
 
 declare -g _first_cycle=true
@@ -179,6 +210,8 @@ while true; do
         # simultaneous type check and value limit, feelsgoodman
         if [[ "$minutes" =~ ^[0-9]{1,3}(.[0-9]*)?$ ]]; then
             # sleep first
+            $_first_cycle || \
+            echo "INFO: Sleeping for the next ${minutes} minutes..."
             sleep "${minutes}m"
 
 
@@ -207,6 +240,7 @@ while true; do
                 --ok-label="${texts['yes']} ($minutes mins)"\
                 --cancel-label="${texts['no']}"
 
+            # shellcheck disable=SC2181
             if [ $? -ne 0 ]; then
                 echo "exiting..."
                 break 2;
