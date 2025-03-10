@@ -21,6 +21,15 @@ else
 
 fi
 
+# tried to be smart: if a optional variable isn't set, remove that line
+# then move cursor 1 line up
+echo -e "\nTO BE REMOVED:\n=========="
+echo -e "* Desktop file: ${DESKTOP:-\033[2K\033[A}"
+echo -e "* Link to local bin: ${LINK:-\033[2K\033[A}"
+echo -e "* This entire directory: '$(readlink -f -- "$(dirname "$0")")'"\
+    "a.k.a. '$(dirname "$0")'"
+echo -e "==========\n"
+
 echo "INFO: If you are having second thoughts, now is the chance!"\
     "Hit [ Ctrl+C ] to cancel."
 counter=8

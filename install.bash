@@ -30,13 +30,17 @@ prompt_yes_no(){
         esac
         # do we even need to add a break condition here? 
     do :
-    done        
+    done
 }
 
-echo "OVER ENGINEER POMODORO SCRIPT INSTALLATION"
+echo "== OVER ENGINEERED POMODORO SCRIPT INSTALLATION =="
+echo "HINT: both the path to local binary folder as well as"\
+    "the installation destination can be configured by setting"\
+    "the 'BIN_PATH' and 'INSTALL_PATH' variable on your bash"\
+    "environment before running this script"
 
 if prompt_yes_no "Do you want to move the script"\
-    "alongside it's resources to ${INSTALL_PATH}?"; then
+    "alongside it's resources to '${INSTALL_PATH}'?"; then
     _install_in_dir=true
 else
     _install_in_dir=false
@@ -44,7 +48,7 @@ fi
 
 
 if prompt_yes_no "Do you want to have a shortcut"\
-    "to the script in ${BIN_PATH}?"; then
+    "to the script in '${BIN_PATH}'?"; then
     _ln_to_bin=true
 else
     _ln_to_bin=false
@@ -76,7 +80,8 @@ if $_install_in_dir; then
     mkdir -p --verbose "${WORK_DIR}"
     for item in "resources" "pomodoro.bash" "uninstall.bash" "install.bash";
     do
-        cp --interactive --verbose --recursive ./"${item}" "${WORK_DIR}/${item}"
+        cp --interactive --verbose --recursive \
+            ./"${item}" "${WORK_DIR}/${item}"
     done
 fi
 
@@ -98,6 +103,14 @@ cat > "${WORK_DIR}/.env" <<ENV
 # : "\${POMO_INTERVAL_1=45}"
 # : "\${POMO_INTERVAL_2=10}"
 # : "\${POMO_INTERVAL_3=5}"
+# 
+# this way, you can override the intervals per run like so:
+# # in your terminal
+# # POMO_INTERVAL_1 is still 45 min, but 2 are 15min and no interval 3
+# POMO_INTERVAL_2=15 POMO_INTERVAL_3="" bash pomodoro.sh
+# 
+# For more overridable parameters, see the scripts itself!
+# Look for the above shell syntax (this one: ': \${...}').
 ENV
 
 if $_ln_to_bin; then
@@ -148,4 +161,5 @@ DOT_DESKTOP
     echo "DESKTOP='$APPLICATION_DIR/$DESKTOP_FILE'" >> "$WORK_DIR/.env"
 fi
 
-echo "INFO: Installation complete."
+echo -e "\nINFO: Installation complete."\
+    "For further configurations, please edit '$WORK_DIR/.env'"
