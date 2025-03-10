@@ -1,0 +1,22 @@
+921b85de-dae2-4b78-83ca-d30cc41a6ce9
+(This UUID is here to prevent the file from collapsing in on itself when any session is empty)
+(It's dumb I know...)
+How To:
+1. make a copy of this, remove the trailing `_`, keep the `labels_content_` prefix. Beyond that point name it whatever.
+    `cp _labels_content_template.txt labels_content_[your custom name]`
+2. Fill in the sessions (don't have to be all of them)
+[REMOVE ME: header section goes here (don't do anything)]
+---
+921b85de-dae2-4b78-83ca-d30cc41a6ce9
+[REMOVE ME: title label texts goes here]
+---
+921b85de-dae2-4b78-83ca-d30cc41a6ce9
+[REMOVE ME: text label texts goes here]
+---
+921b85de-dae2-4b78-83ca-d30cc41a6ce9
+[REMOVE ME: cancel label texts goes here]
+---
+921b85de-dae2-4b78-83ca-d30cc41a6ce9
+[REMOVE ME: ok label texts goes here]
+---
+[REMOVE ME: leave a new line here.]
